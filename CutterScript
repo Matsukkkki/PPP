@@ -1,0 +1,91 @@
+using UnityEngine;
+
+public class CutterScript : MonoBehaviour
+{
+    private string lastDirection = ""; // 最後に押されたWASD方向を保持する変数
+
+    public GameObject boomerangPrefab;
+    public GameObject spawnPointObject; // もしGameObjectを使いたい場合
+    private Transform spawnPoint;
+
+    public float boomerangSpeed = 10f;
+    public float maxDistance = 3f;
+
+    private Vector3 fixedSpawnPointOffset; // スパンポイントのオフセット
+
+    private static int boomerangCount = 0;  // 現在アクティブなブーメランの数
+
+    void Start()
+    {
+        spawnPoint = spawnPointObject.transform; // spawnPointの位置を取得
+        fixedSpawnPointOffset = spawnPoint.position - transform.position;
+    }
+
+    void Update()
+    {
+        CheckWASDInput();
+
+        if (spawnPoint != null)
+        {
+            spawnPoint.position = transform.position + fixedSpawnPointOffset;
+        }
+
+        // Returnキーが押されたときにブーメランを発射
+        if (Input.GetKeyDown(KeyCode.Return) && boomerangCount < 2)
+        {
+            FireBoomerang();
+        }
+    }
+
+    private void CheckWASDInput()
+    {
+        if (Input.GetKeyDown(KeyCode.W)) lastDirection = "W";
+        else if (Input.GetKeyDown(KeyCode.A)) lastDirection = "A";
+        else if (Input.GetKeyDown(KeyCode.S)) lastDirection = "S";
+        else if (Input.GetKeyDown(KeyCode.D)) lastDirection = "D";
+    }
+
+    private void FireBoomerang()
+    {
+        if (lastDirection != "")
+        {
+            // ブーメランを生成
+            GameObject boomerang = Instantiate(boomerangPrefab, spawnPoint.position, Quaternion.identity);
+
+            // 発射方向を設定
+            Vector3 direction = Vector3.zero;
+            switch (lastDirection)
+            {
+                case "W": direction = Vector3.forward; break;
+                case "A": direction = Vector3.left; break;
+                case "S": direction = Vector3.back; break;
+                case "D": direction = Vector3.right; break;
+            }
+
+            // Rigidbodyに速度を設定
+            Rigidbody boomerangRb = boomerang.GetComponent<Rigidbody>();
+            if (boomerangRb != null)
+            {
+                boomerangRb.linearVelocity = new Vector3(direction.x * boomerangSpeed, 0, direction.z * boomerangSpeed);
+            }
+
+            // BoomerangMovement コンポーネントに spawnPoint を設定
+            BoomerangMovement boomerangMovement = boomerang.GetComponent<BoomerangMovement>();
+            if (boomerangMovement != null)
+            {
+                boomerangMovement.SetSpawnPoint(spawnPoint);
+                boomerangMovement.maxDistance = maxDistance;
+                boomerangMovement.returnSpeed = boomerangSpeed;
+            }
+
+            Debug.Log("Boomerang fired in direction: " + lastDirection);
+            boomerangCount++;
+        }
+    }
+
+    // 発射されるブーメランのカウントをリセットするメソッド
+    public static void ResetBoomerangCount()
+    {
+        boomerangCount = 0;
+    }
+}
